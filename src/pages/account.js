@@ -125,7 +125,7 @@ export default function AccountPage() {
                                             )}
 
                                         {!session && (
-                                            <WishlistP>You don't have  Wishlist. Please you need to Login</WishlistP>
+                                            <WishlistP>You don't have  WWishlist. Please you need to Login</WishlistP>
                                         )}
 
                                         {Wishloaded && (
