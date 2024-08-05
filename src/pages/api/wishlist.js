@@ -16,7 +16,6 @@ export default async function handler(req, res) {
 
 
         if (req.method === "POST") {
-            // Ensure product is provided in the request body
             const { product } = req.body;
 
             if (!product) {

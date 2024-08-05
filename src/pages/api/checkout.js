@@ -1,21 +1,31 @@
 import mongoose from "mongoose";
 import Product from "../../../models/Product";
 import { Order } from "../../../models/Order";
-const stripe = require('stripe')
-(process.env.STRIPE_SK);
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+const stripe = require('stripe')(process.env.STRIPE_SK);
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
-        return res.status(400).json({ error: "Method Not Allowed" });
+        return res.status(405).json({ error: "Method Not Allowed" });
     }
 
+    let session;
     try {
+        // Parse and validate request body
         const { name, email, city, postalCode, streetAddress, country, cartProducts } = req.body;
+        if (!name || !email || !city || !postalCode || !streetAddress || !country || !cartProducts) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        // Fetch product details
         const productsId = cartProducts;
-        const productsInfos = await Product.find({ _id:  productsId  });
+        const productsInfos = await Product.find({ _id: { $in: productsId } });
 
         let line_items = [];
         let calculatedTotal = 0;
+
+        session = await getServerSession(req, res, authOptions);
 
         const productQuantityMap = productsId.reduce((acc, productId) => {
             acc[productId] = (acc[productId] || 0) + 1;
@@ -24,7 +34,6 @@ export default async function handler(req, res) {
 
         const uniqueProductIds = Object.keys(productQuantityMap);
         for (const productId of uniqueProductIds) {
-
             const productInfo = productsInfos.find(p => p._id.toString() === productId);
             const quantity = productQuantityMap[productId];
 
@@ -33,7 +42,7 @@ export default async function handler(req, res) {
                 line_items.push({
                     price_data: {
                         currency: "GBP",
-                        product_data: {name: productInfo.title,},
+                        product_data: { name: productInfo.title },
                         unit_amount: Math.round(productInfo.price * 100),
                     },
                     quantity: quantity,
@@ -51,9 +60,11 @@ export default async function handler(req, res) {
             country,
             paid: false,
             totalAmount: calculatedTotal,
+            userEmail: session?.user?.email,
         });
 
-        const session = await stripe.checkout.sessions.create({
+        // Create a Stripe checkout session
+        const StripeSession = await stripe.checkout.sessions.create({
             line_items,
             mode: "payment",
             customer_email: email,
@@ -61,12 +72,7 @@ export default async function handler(req, res) {
             cancel_url: `${process.env.PUBLIC_URL}/cart?canceled=1`,
             metadata: { orderId: orderDoc._id.toString(), test: "ok" },
         });
-        console.log(session);
-
-
-        res.json({
-            url: session.url
-        });
+        res.json({ url: StripeSession.url });
     } catch (error) {
         console.error('Checkout API Error:', error);
         res.status(500).json({ error: "Internal Server Error" });
