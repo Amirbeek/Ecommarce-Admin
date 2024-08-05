@@ -1,7 +1,6 @@
 
 
 import styled from "styled-components";
-import {Address} from "../models/Address";
 
 const StyledOrder =  styled.div`
     //background-color: #aaa;

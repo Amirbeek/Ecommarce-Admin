@@ -2,7 +2,6 @@
 import { mongooseConnect } from "../../../lib/mongoose";
 import { getServerSession } from "next-auth";
 import { Address } from "../../../models/Address";
-import Joi from 'joi';
 import {authOptions} from "@/pages/api/auth/[...nextauth]";
 
 
