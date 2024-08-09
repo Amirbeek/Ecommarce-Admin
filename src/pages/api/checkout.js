@@ -1,84 +1,74 @@
-import mongoose from "mongoose";
-import Product from "../../../models/Product";
-import { Order } from "../../../models/Order";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import {mongooseConnect} from "../../../lib/mongoose";
+import {Product} from "../../../model/Product";
+import {Order} from "../../../model/Order";
+import {getServerSession} from "next-auth";
+import {authOptions} from "@/pages/api/auth/[...nextauth]";
+import {Setting} from "../../../model/Setting"
 const stripe = require('stripe')(process.env.STRIPE_SK);
 
-export default async function handler(req, res) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method Not Allowed" });
+export default async function handler(req,res) {
+    if (req.method !== 'POST') {
+        res.json('should be a POST request');
+        return;
+    }
+    const {
+        name,email,city,
+        postalCode,streetAddress,country,
+        cartProducts,
+    } = req.body;
+    await mongooseConnect();
+    const productsIds = cartProducts;
+    const uniqueIds = [...new Set(productsIds)];
+    const productsInfos = await Product.find({_id:uniqueIds});
+
+    let line_items = [];
+    for (const productId of uniqueIds) {
+        const productInfo = productsInfos.find(p => p._id.toString() === productId);
+        const quantity = productsIds.filter(id => id === productId)?.length || 0;
+        if (quantity > 0 && productInfo) {
+            line_items.push({
+                quantity,
+                price_data: {
+                    currency: 'USD',
+                    product_data: {name:productInfo.title},
+                    unit_amount: quantity * productInfo.price * 100,
+                },
+            });
+        }
     }
 
-    let session;
-    try {
-        // Parse and validate request body
-        const { name, email, city, postalCode, streetAddress, country, cartProducts } = req.body;
-        if (!name || !email || !city || !postalCode || !streetAddress || !country || !cartProducts) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
+    const session = await getServerSession(req,res,authOptions);
 
-        // Fetch product details
-        const productsId = cartProducts;
-        const productsInfos = await Product.find({ _id: { $in: productsId } });
+    const orderDoc = await Order.create({
+        line_items,name,email,city,postalCode,
+        streetAddress,country,paid:false,
+        userEmail: session?.user?.email,
+    });
 
-        let line_items = [];
-        let calculatedTotal = 0;
+    const shippingFeeSetting = await Setting.findOne({name:'shippingFee'});
+    const shippingFeeCents = parseInt(shippingFeeSetting.value || '0') * 100;
 
-        session = await getServerSession(req, res, authOptions);
-
-        const productQuantityMap = productsId.reduce((acc, productId) => {
-            acc[productId] = (acc[productId] || 0) + 1;
-            return acc;
-        }, {});
-
-        const uniqueProductIds = Object.keys(productQuantityMap);
-        for (const productId of uniqueProductIds) {
-            const productInfo = productsInfos.find(p => p._id.toString() === productId);
-            const quantity = productQuantityMap[productId];
-
-            if (productInfo) {
-                calculatedTotal += productInfo.price * quantity;
-                line_items.push({
-                    price_data: {
-                        currency: "GBP",
-                        product_data: { name: productInfo.title },
-                        unit_amount: Math.round(productInfo.price * 100),
-                    },
-                    quantity: quantity,
-                });
+    const stripeSession = await stripe.checkout.sessions.create({
+        line_items,
+        mode: 'payment',
+        customer_email: email,
+        success_url: process.env.PUBLIC_URL + '/cart?success=1',
+        cancel_url: process.env.PUBLIC_URL + '/cart?canceled=1',
+        metadata: {orderId:orderDoc._id.toString()},
+        allow_promotion_codes: true,
+        shipping_options: [
+            {
+                shipping_rate_data: {
+                    display_name: 'shipping fee',
+                    type: 'fixed_amount',
+                    fixed_amount: {amount: shippingFeeCents, currency: 'USD'},
+                },
             }
-        }
+        ],
+    });
 
-        const orderDoc = await Order.create({
-            line_items,
-            name,
-            email,
-            city,
-            postalCode,
-            streetAddress,
-            country,
-            paid: false,
-            totalAmount: calculatedTotal,
-            userEmail: session?.user?.email,
-        });
+    res.json({
+        url:stripeSession.url,
+    })
 
-        // Create a Stripe checkout session
-        const StripeSession = await stripe.checkout.sessions.create({
-            line_items,
-            mode: "payment",
-            customer_email: email,
-            success_url: `${process.env.PUBLIC_URL}/cart?success=1`,
-            cancel_url: `${process.env.PUBLIC_URL}/cart?canceled=1`,
-            metadata: { orderId: orderDoc._id.toString(), test: "ok" },
-        });
-        res.json({ url: StripeSession.url });
-    } catch (error) {
-        console.error('Checkout API Error:', error);
-        res.status(500).json({ error: "Internal Server Error" });
-    } finally {
-        if (mongoose.connection.readyState === 1) {
-            await mongoose.connection.close();
-        }
-    }
 }

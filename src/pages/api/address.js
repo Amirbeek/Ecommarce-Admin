@@ -1,7 +1,7 @@
 
 import { mongooseConnect } from "../../../lib/mongoose";
 import { getServerSession } from "next-auth";
-import { Address } from "../../../models/Address";
+import { Address } from "../../../model/Address";
 import {authOptions} from "@/pages/api/auth/[...nextauth]";
 
 
@@ -11,10 +11,6 @@ export default async function handler(req, res) {
     const session = await getServerSession(req, res, authOptions);
     const { user } = session;
     if (req.method === 'PUT') {
-        // const { error } = addressSchema.validate(req.body);
-        // if (error) {
-        //     return res.status(400).json({ message: error.details[0].message });
-        // }
         let address = await Address.findOne({ userEmail: user.email });
         if (address) {
             address = await Address.findByIdAndUpdate(address._id, req.body, { new: true });

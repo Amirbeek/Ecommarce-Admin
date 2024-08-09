@@ -31,15 +31,13 @@ export const StyledButtons = css`
     `}
     ${props => props.black && !props.outline && css`
         background-color: #000;
-        font-weight: bold;
-        color: #000;
+        color: #fff;
         font-weight: bold;
     `}
     ${props => props.black && props.outline && css`
         background-color: transparent;
         font-weight: bold;
         color: #000;
-        font-weight: bold;
         border: 1px solid black;
     `}
     ${props => props.primary && !props.outline && css`

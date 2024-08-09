@@ -10,14 +10,24 @@ import Image from "next/image";
 import Input from "../../components/Input";
 import { RevealWrapper } from "next-reveal";
 import { useSession } from "next-auth/react";
+import Spinner from "../../components/Spinner";
 
 const ColumnWrapper = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: 40px;
     margin-top: 40px;
+    margin-bottom: 40px;
     @media screen and (min-width: 768px) {
         grid-template-columns: 1.3fr 0.7fr;
+    }
+    table thead tr th:nth-child(3),
+    table tbody tr td:nth-child(3),
+    table tr.subtotal td:nth-child(2){
+        text-align: right;
+    }
+    tr.total td{
+        font-weight: bold;
     }
 `;
 
@@ -62,6 +72,7 @@ const QuantityTD = styled.td`
 
 const TotalTD = styled.td`
     font-weight: bold;
+    font-size: 18px;
 `;
 
 const CityHolder = styled.div`
@@ -81,7 +92,8 @@ export default function CartPage() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [total, setTotal] = useState(0);
-    const { data: session, status } = useSession();
+    const { data: session } = useSession();
+    const [shipping, setShipping] = useState(0);  // Default to 0
 
     const fetchProducts = useCallback(async () => {
         if (cartProducts.length > 0) {
@@ -97,10 +109,11 @@ export default function CartPage() {
     }, [cartProducts]);
 
     const fetchAddressData = useCallback(async () => {
+        setIsLoaded(false);
         try {
             const response = await axios.get('/api/address');
-            setName(session.user.name || "");
-            setEmail(session.user.email || '');
+            setName(session?.user?.name || "");
+            setEmail(session?.user?.email || '');
             setCity(response.data.city || '');
             setPostalCode(response.data.postalCode || '');
             setStreetAddress(response.data.streetAddress || '');
@@ -116,14 +129,25 @@ export default function CartPage() {
     }, [fetchProducts]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.location.href.includes('success')) {
+        if (window?.location.href.includes('success')) {
             setIsSuccess(true);
-            emptyArray();
+
         }
+        const fetchShipping = async () => {
+            try {
+                const res = await axios.get('/api/settings?name=shippingFee');
+                const shippingFee = res.data?.value || '0';
+                setShipping(parseFloat(shippingFee));
+            } catch (error) {
+                console.error('Error fetching shipping fee:', error);
+            }
+        };
+
+        fetchShipping();
         if (session?.user) {
             fetchAddressData();
         }
-    }, [fetchAddressData, fetchProducts, emptyArray, session]);
+    }, [fetchAddressData, emptyArray, session]);
 
     useEffect(() => {
         const newTotal = products.reduce((acc, product) => {
@@ -154,7 +178,7 @@ export default function CartPage() {
             });
 
             if (response.data.url) {
-                window.location.href = response.data.url; // Redirect to Stripe Checkout
+                window.location.href = response.data.url;
             } else {
                 console.error('Invalid response from API:', response);
             }
@@ -179,6 +203,10 @@ export default function CartPage() {
             </>
         );
     }
+
+    const productTotal = total.toFixed(2);
+    const shippingTotal = shipping.toFixed(2);
+    const grandTotal = (parseFloat(productTotal) + parseFloat(shippingTotal)).toFixed(2);
 
     return (
         <>
@@ -205,7 +233,7 @@ export default function CartPage() {
                                             <tr key={product._id}>
                                                 <ProductInfoCell>
                                                     <ProductImageBox>
-                                                        <Image src={product.images[0]} alt='' width={80} height={80} />
+                                                        <Image src={product.images[0]} alt={product.title} width={80} height={80} />
                                                     </ProductImageBox>
                                                     {product.title}
                                                 </ProductInfoCell>
@@ -219,10 +247,17 @@ export default function CartPage() {
                                                 <td>£{product.price.toFixed(2)}</td>
                                             </tr>
                                         ))}
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <TotalTD>£{total.toFixed(2)}</TotalTD>
+                                        <tr className={'subtotal'}>
+                                            <td colSpan={2}>Products</td>
+                                            <TotalTD>£{productTotal}</TotalTD>
+                                        </tr>
+                                        <tr className={'subtotal'}>
+                                            <td colSpan={2}>Shipping</td>
+                                            <TotalTD>£{shippingTotal}</TotalTD>
+                                        </tr>
+                                        <tr className={'subtotal total'}>
+                                            <td colSpan={2}>Total</td>
+                                            <TotalTD>£{grandTotal}</TotalTD>
                                         </tr>
                                         </tbody>
                                     </Table>
@@ -230,24 +265,52 @@ export default function CartPage() {
                             )}
                         </Box>
                     </RevealWrapper>
-                    <RevealWrapper origin={'right'}>
-                        {cartProducts.length > 0 && (
+                    {!!cartProducts?.length && (
+                        <RevealWrapper origin={'right'}>
                             <Box>
-                                <h2>Order Information</h2>
-                                <Input type='text' placeholder='Name' name={'name'} value={name} onChange={ev => setName(ev.target.value)} />
-                                <Input type='text' placeholder='Email' name={'email'} value={email} onChange={ev => setEmail(ev.target.value)} />
-                                <CityHolder>
-                                    <Input type='text' placeholder='City' name={'city'} value={city} onChange={ev => setCity(ev.target.value)} />
-                                    <Input type='text' placeholder='PostalCode' name={'postalCode'} value={postalCode} onChange={ev => setPostalCode(ev.target.value)} />
-                                </CityHolder>
-                                <Input type='text' placeholder='Street Address' name={'streetAddress'} value={streetAddress} onChange={ev => setStreetAddress(ev.target.value)} />
-                                <Input type='text' placeholder='Country' name={'country'} value={country} onChange={ev => setCountry(ev.target.value)} />
-                                <Button block black outline onClick={goToPayment} disabled={!isLoaded}>
-                                    Continue to Payment
-                                </Button>
+                                <h2>Order information</h2>
+                                {!isLoaded ? (
+                                    <Spinner fullWidth={true} />
+                                ) : (
+                                    <>
+                                        <Input type='text'
+                                               placeholder='Name'
+                                               value={name}
+                                               name={'name'}
+                                               onChange={ev => setName(ev.target.value)} />
+                                        <Input type='text'
+                                               placeholder='Email'
+                                               value={email}
+                                               name={'email'}
+                                               onChange={ev => setEmail(ev.target.value)} />
+                                        <CityHolder>
+                                            <Input type='text'
+                                                   placeholder='City'
+                                                   value={city}
+                                                   name={'city'}
+                                                   onChange={ev => setCity(ev.target.value)} />
+                                            <Input type='text'
+                                                   placeholder='Postal Code'
+                                                   value={postalCode}
+                                                   name={'postalCode'}
+                                                   onChange={ev => setPostalCode(ev.target.value)} />
+                                        </CityHolder>
+                                        <Input type='text'
+                                               placeholder='Street Address'
+                                               value={streetAddress}
+                                               name={'streetAddress'}
+                                               onChange={ev => setStreetAddress(ev.target.value)} />
+                                        <Input type='text'
+                                               placeholder='Country'
+                                               value={country}
+                                               name={'country'}
+                                               onChange={ev => setCountry(ev.target.value)} />
+                                        <Button black block onClick={goToPayment}>Continue to Payment</Button>
+                                    </>
+                                )}
                             </Box>
-                        )}
-                    </RevealWrapper>
+                        </RevealWrapper>
+                    )}
                 </ColumnWrapper>
             </Center>
         </>

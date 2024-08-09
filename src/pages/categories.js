@@ -1,14 +1,14 @@
 import Header from "../../components/Header";
 import Center from "../../components/Center";
-import { Category } from "../../models/Category";
-import Product from "../../models/Product";
+import { Category } from "../../model/Category";
+import {Product} from "../../model/Product";
 import ProductBox from "../../components/ProductBox";
 import styled from "styled-components";
 import Link from "next/link";
 import { RevealWrapper } from "next-reveal";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import WishedProduct from "../../models/WishedProduct";
+import {WishedProduct} from "../../model/WishedProduct";
 import { mongooseConnect } from "../../lib/mongoose";
 
 const CatGrid = styled.div`

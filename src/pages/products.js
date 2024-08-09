@@ -2,11 +2,11 @@ import Header from "../../components/Header";
 import styled from "styled-components";
 import Center from "../../components/Center";
 import { mongooseConnect } from "../../lib/mongoose";
-import Product from "../../models/Product";
+import {Product} from "../../model/Product";
 import ProductsGrid from "../../components/ProductsGrid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import WishedProduct from "../../models/WishedProduct"; // Correct import for WishedProduct model
+import {WishedProduct} from "../../model/WishedProduct"; // Correct import for WishedProduct model
 
 const Title = styled.h1`
     font-size: 1.5rem;

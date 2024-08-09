@@ -163,7 +163,10 @@ export default function AccountPage() {
                     <div>
                         <RevealWrapper delay={100}>
                             <WhiteBox>
-                                        {session ? (
+                                        {!Wishloaded && (
+                                            <Spinner/>
+                                        )}
+                                        {session && Wishloaded ? (
                                                 <div>
                                                     {!session && !loaded ? <Spinner fullWidth={true} /> : (
                                                     <div>

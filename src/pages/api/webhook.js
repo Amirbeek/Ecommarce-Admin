@@ -1,24 +1,25 @@
-import {mongooseConnect} from "@/lib/mongoose";
+import { buffer } from 'micro';
+import { mongooseConnect } from '../../../lib/mongoose';
+import { Order } from '../../../model/Order';
 const stripe = require('stripe')(process.env.STRIPE_SK);
-import {buffer} from 'micro';
-import {Order} from "../../../models/Order";
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-const endpointSecret = "whsec_cb53d074007ddc3d11b4718477c9cbcd88a6951bd0a435001072aecca18d62c4 ";
-export default async function handler(req,res) {
+export default async function handler(req, res) {
     await mongooseConnect();
-    const sig = req.headers['stripe-signature'];
 
-    let event;
+        const sig = req.headers['stripe-signature'];
+        let event;
 
-    try {
-        event = stripe.webhooks.constructEvent(await buffer(req), sig, endpointSecret);
-    } catch (err) {
-        res.status(400).send(`Webhook Error: ${err.message}`);
-        return;
-    }
+        try {
+            const rawBody = await buffer(req);
+            event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+        } catch (err) {
+            console.error(`Webhook Error: ${err.message}`);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
 
-    // Handle the event
-    switch (event.type) {
+        console.log(event.type);
+        switch (event.type) {
         case 'checkout.session.completed':
             const data = event.data.object;
             const orderId = data.metadata.orderId;
@@ -33,9 +34,11 @@ export default async function handler(req,res) {
             console.log(`Unhandled event type ${event.type}`);
     }
 
-    res.status(200).send('ok');
+    res.status(200).json({ received: true });
 }
 
 export const config = {
-    api: {bodyParser:false,}
+    api: {
+        bodyParser: false,
+    },
 };

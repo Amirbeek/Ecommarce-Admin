@@ -1,8 +1,8 @@
 import Title from "../../../components/Title";
 import Center from "../../../components/Center";
-import { Category } from "../../../models/Category";
+import { Category } from "../../../model/Category";
 import Header from "../../../components/Header";
-import Product from "../../../models/Product";
+import {Product} from "../../../model/Product";
 import ProductsGrid from "../../../components/ProductsGrid";
 import styled from "styled-components";
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ import { debounce } from 'lodash';
 import Spinner from "../../../components/Spinner";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import WishedProducts from "../../../models/WishedProduct";
+import {WishedProduct} from "../../../model/WishedProduct";
 
 // Styled Components
 const CategoryHeader = styled.div`
@@ -156,7 +156,7 @@ export async function getServerSideProps(context) {
 
     let wishedNewProducts = [];
     if (user) {
-        wishedNewProducts = await WishedProducts.find({
+        wishedNewProducts = await WishedProduct.find({
             userEmail: user.email,
             product: products.map(p => p._id.toString()),
         }).lean();
