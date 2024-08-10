@@ -1,4 +1,3 @@
-import Title from "../../../components/Title";
 import Center from "../../../components/Center";
 import { Category } from "../../../model/Category";
 import Header from "../../../components/Header";

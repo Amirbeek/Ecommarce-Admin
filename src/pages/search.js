@@ -22,7 +22,7 @@ const InputWrapper = styled.div`
     background-color: #eee;
 `;
 
-export default function Search(message) {
+export default function Search() {  // Removed the 'message' parameter
     const [phrase, setPhrase] = useState('');
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -51,10 +51,14 @@ export default function Search(message) {
     const fetchWishlist = async () => {
         try {
             const wishlistResponse = await axios.get('/api/wishlist');
+            console.log('Wishlist Response:', wishlistResponse); // Log the entire response
+
             const wishlistData = wishlistResponse.data;
-            setWishlist(wishlistData.map(item => item.product)); // Extract products from wishlist
+            console.log('Search Wishlist Data:', wishlistData); // Log the extracted data
+
+            setWishlist(wishlistData.map(item => item.product._id));
+
             setWishLoaded(true);
-            alert("Wishlist data:", wishlistData);
         } catch (error) {
             console.error("Error fetching wishlist:", error);
             setWishLoaded(false);

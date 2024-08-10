@@ -1,7 +1,6 @@
 import Header from "../../components/Header";
 import Center from "../../components/Center";
 import styled from "styled-components";
-import Title from "../../components/Title";
 import { useSession, signOut, signIn } from "next-auth/react";
 import Button from "../../components/Button";
 import WhiteBox from "../../components/WhiteBox";
