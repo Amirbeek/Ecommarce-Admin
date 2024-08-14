@@ -12,7 +12,6 @@ import Spinner from "../../components/Spinner";
 import ProductBox from "../../components/ProductBox";
 import Tabs from "../../components/Tabs";
 import SingleOrder from "../../components/SingleOrder";
-
 const WishlistP = styled.p`
     font-size: small;
     color: darkgray;
@@ -32,6 +31,7 @@ const WishedProductGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 40px;
+    
 `
 export default function AccountPage() {
     const { data: session, status } = useSession();
@@ -48,8 +48,8 @@ export default function AccountPage() {
     const [activeTab, setActiveTab] =useState('Orders');
     const [orders,setOrders] = useState([]);
     const [OrdersLoaded, setOrdersLoaded] =useState(true)
-    const fetchAddressData = useCallback(async () => {
 
+    const fetchAddressData = useCallback(async () => {
 
         try {
             const response = await axios.get('/api/address');
@@ -85,7 +85,6 @@ export default function AccountPage() {
         try {
             const data = { name, email, city, postalCode, streetAddress, country };
             await axios.put('/api/address', data);
-            alert('Address saved successfully!');
         } catch (error) {
             setError('Error saving address.');
             console.error('Error saving address:', error);
@@ -162,7 +161,7 @@ export default function AccountPage() {
                     <div>
                         <RevealWrapper delay={100}>
                             <WhiteBox>
-                                        {!Wishloaded && (
+                                        {session && !Wishloaded && (
                                             <Spinner/>
                                         )}
                                         {session && Wishloaded ? (
@@ -218,9 +217,8 @@ export default function AccountPage() {
                                                 </div>
                                         ) : (<>
                                             <WishlistP>Please you need to Login</WishlistP>
+
                                         </>)}
-
-
                                 {session ? (
                                     <Button primary onClick={logout}>Log out</Button>
                                 ) : (

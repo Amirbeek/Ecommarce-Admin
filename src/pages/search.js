@@ -51,13 +51,10 @@ export default function Search() {  // Removed the 'message' parameter
     const fetchWishlist = async () => {
         try {
             const wishlistResponse = await axios.get('/api/wishlist');
-            console.log('Wishlist Response:', wishlistResponse); // Log the entire response
-
+            console.log('Wishlist Response:', wishlistResponse);
             const wishlistData = wishlistResponse.data;
-            console.log('Search Wishlist Data:', wishlistData); // Log the extracted data
-
-            setWishlist(wishlistData.map(item => item.product._id));
-
+            console.log('Search Wishlist Data:', wishlistData);
+            setWishlist(wishlistData.map(item => item.product?._id));
             setWishLoaded(true);
         } catch (error) {
             console.error("Error fetching wishlist:", error);

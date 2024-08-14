@@ -81,7 +81,7 @@ export default function Categories({ mainCategories, categoriesProducts, wishedP
         </>
     );
 }
-
+// 5542F6
 export async function getServerSideProps(ctx) {
     await mongooseConnect();
     const categories = await Category.find();

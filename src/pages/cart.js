@@ -269,7 +269,7 @@ export default function CartPage() {
                         <RevealWrapper origin={'right'}>
                             <Box>
                                 <h2>Order information</h2>
-                                {!isLoaded ? (
+                                {isLoaded ? (
                                     <Spinner fullWidth={true} />
                                 ) : (
                                     <>

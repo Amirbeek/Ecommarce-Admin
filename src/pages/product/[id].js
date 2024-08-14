@@ -10,6 +10,7 @@ import CardIcon from "../../../components/CardIcon";
 import { useContext } from "react";
 import CardContext from "../../../components/CardContext";
 import FlyingButton from "../../../components/FlyingButton";
+import ProductReviews from "../../../components/ProductReviews";
 
 const ColWrapper = styled.div`
     display: grid;
@@ -55,6 +56,7 @@ export default function ProductPage({ product }) {
                         </BoxOfPriceAndTitle>
                     </div>
                 </ColWrapper>
+                <ProductReviews product={product}/>
             </Center>
         </>
     );
